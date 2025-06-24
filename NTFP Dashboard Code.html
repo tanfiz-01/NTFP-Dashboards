@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NTFP & Agro-Commodity Strategy Dashboard | Rajasthan & Haryana</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Warm Neutrals with Earthy Accents -->
+    <!-- Application Structure Plan: A dashboard-style, single-page application designed for interactive exploration. The structure is task-oriented, not a mirror of the report. It starts with a high-level summary (key stats and the core "Linkage Imbalance" finding), followed by an interactive "Commodity Explorer" with filters (by category, linkage need, state) and clickable detail cards. This non-linear, user-driven structure was chosen to make the dense report data accessible and engaging, allowing users (policymakers, entrepreneurs) to quickly find information relevant to their interests rather than reading sequentially. A dedicated "Strategic Recommendations" section at the end uses an accordion to present actionable advice without cluttering the main view. This design prioritizes usability and data synthesis over simple presentation. -->
+    <!-- Visualization & Content Choices: 
+        1. Linkage Imbalance: Report Info -> Most species need backward linkage support. Goal -> Inform/Compare. Viz -> Donut Chart (Chart.js). Interaction -> Hover for details. Justification -> Instantly visualizes the report's central thesis.
+        2. Commodity Data: Report Info -> 19 species with detailed attributes. Goal -> Organize/Filter/Explore. Viz -> Interactive Cards (HTML/Tailwind). Interaction -> Click for modal, dynamic filtering. Justification -> More engaging and user-friendly than a static table.
+        3. Stakeholder Advice: Report Info -> Recommendations for 3 groups. Goal -> Organize/Inform. Viz -> Accordion (HTML/JS). Interaction -> Click to expand. Justification -> Hides dense text, keeping UI clean.
+        4. Ashwagandha Supply/Demand: Report Info -> 1500t supply vs 7000t demand. Goal -> Compare. Viz -> Bar Chart (Chart.js) in modal. Interaction -> Hover tooltips. Justification -> A simple, powerful visualization for a key data point.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .modal-bg {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+        .card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .active-filter {
+            background-color: #1e40af; /* dark blue */
+            color: white;
+        }
+        .inactive-filter {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #374151; /* gray-700 */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-slate-900">Agri-Value Chain Explorer</h1>
+            <span class="text-sm font-medium text-slate-500 hidden md:block">Rajasthan, Haryana & Delhi NCR</span>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="summary" class="mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-blue-900 mb-2">Strategic Agribusiness Opportunities</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">
+                    An interactive analysis of 19 high-potential Non-Timber Forest Products (NTFPs) and Agro-Commodities. This dashboard highlights the primary bottleneck in their value chains and provides a strategic outlook for stakeholders.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-lg border border-slate-100 flex flex-col justify-center">
+                    <h3 class="font-bold text-lg mb-4 text-center text-slate-700">The Core Challenge: Linkage Development Priority</h3>
+                    <p class="text-sm text-center text-slate-500 mb-4">The report's primary finding is that most value chains are constrained by weaknesses on the supply side (Backward Linkages) rather than market access (Forward Linkages). This chart shows the distribution of the primary linkage development needed across the 19 identified high-potential species.</p>
+                    <div class="chart-container relative h-64 md:h-80 w-full max-w-md mx-auto">
+                        <canvas id="linkageChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-100 flex flex-col justify-center space-y-4">
+                     <h3 class="font-bold text-lg mb-2 text-center text-slate-700">Key Findings at a Glance</h3>
+                    <div class="p-4 bg-blue-50 rounded-lg text-center">
+                        <p class="text-3xl font-bold text-blue-800">19</p>
+                        <p class="text-sm text-slate-600">High-Potential Species Identified</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg text-center">
+                        <p class="text-xl font-bold text-green-800">74%</p>
+                        <p class="text-sm text-slate-600">Require stronger Backward Linkages</p>
+                    </div>
+                    <div class="p-4 bg-amber-50 rounded-lg text-center">
+                        <p class="text-xl font-bold text-amber-800">5</p>
+                        <p class="text-sm text-slate-600">Primary Product Categories</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="explorer" class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-slate-100">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-blue-900 mb-2">Interactive Commodity Explorer</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">
+                    Use the filters below to explore the high-potential species. Click on any card to view a detailed analysis, including key value-added products and strategic interventions.
+                </p>
+            </div>
+            
+            <div id="filters" class="flex flex-wrap justify-center gap-4 mb-8">
+                <div>
+                    <span class="font-semibold mr-2">Category:</span>
+                    <select id="categoryFilter" class="filter-btn p-2 rounded-md border border-slate-300 bg-white">
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
+                <div>
+                    <span class="font-semibold mr-2">Linkage Need:</span>
+                    <select id="linkageFilter" class="filter-btn p-2 rounded-md border border-slate-300 bg-white">
+                        <option value="all">All Linkages</option>
+                        <option value="Backward">Backward</option>
+                        <option value="Forward">Forward</option>
+                        <option value="Integrated">Integrated</option>
+                    </select>
+                </div>
+                <div>
+                    <span class="font-semibold mr-2">State:</span>
+                    <select id="stateFilter" class="filter-btn p-2 rounded-md border border-slate-300 bg-white">
+                        <option value="all">All States</option>
+                        <option value="Rajasthan">Rajasthan</option>
+                        <option value="Haryana">Haryana</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="speciesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            </div>
+             <p id="noResults" class="text-center text-slate-500 hidden mt-8">No species match the selected filters.</p>
+        </section>
+
+        <section id="recommendations" class="mt-12">
+             <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-blue-900 mb-2">Strategic Recommendations for Stakeholders</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">
+                    The report outlines specific strategies for key actors to unlock the value-addition potential. Click on a stakeholder group to view the tailored recommendations.
+                </p>
+            </div>
+            <div id="accordion" class="space-y-4 max-w-4xl mx-auto">
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white mt-12 py-6 border-t">
+        <div class="container mx-auto text-center text-slate-500 text-sm">
+            <p>&copy; 2025 Agri-Value Chain Explorer. Data sourced from Strategic Analysis Report.</p>
+        </div>
+    </footer>
+
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4 modal-bg">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto modal-content transform scale-95">
+            <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center z-10">
+                <h3 id="modalTitle" class="text-xl font-bold text-blue-900"></h3>
+                <button id="closeModal" class="text-slate-500 hover:text-slate-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="modalBody" class="p-6">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const speciesData = [
+                {
+                    name: "Ashwagandha",
+                    botanical: "Withania somnifera",
+                    states: ["Rajasthan", "Haryana", "Delhi"],
+                    category: "Medicinal & Aromatic Plants",
+                    linkage: "Backward",
+                    strength: "Global adaptogen boom; strong pharma & nutraceutical demand.",
+                    products: ["Standardized extracts", "Powders", "Capsules", "Functional food ingredients"],
+                    justification: "Address massive supply deficit (1500t production vs 7000t demand) by promoting cultivation of high-yielding varieties (Jawahar, Poshita) and forming FPOs for organic certification and collective marketing to meet export quality norms.",
+                    chartData: { type: 'bar', labels: ['Production (t)', 'Demand (t)'], values: [1500, 7000], title: 'Ashwagandha: Supply vs. Demand Gap' }
+                },
+                {
+                    name: "Amla",
+                    botanical: "Phyllanthus emblica",
+                    states: ["Rajasthan", "Haryana", "Delhi"],
+                    category: "Medicinal & Aromatic Plants",
+                    linkage: "Backward",
+                    strength: "High Vitamin-C content; strong demand for immunity & cosmetic products.",
+                    products: ["Juice", "Candy (murabba)", "Powder", "Chyawanprash", "Hair oil"],
+                    justification: "Establish organized, high-tech orchards (drip irrigation, GAPs) using NHB models to ensure consistent supply of quality fruit for processors. Leverage state schemes (e.g., Haryana's Amla-Moringa project) and form FPOs for grading."
+                },
+                {
+                    name: "Isabgol",
+                    botanical: "Plantago ovata",
+                    states: ["Rajasthan", "Haryana"],
+                    category: "Medicinal & Aromatic Plants",
+                    linkage: "Forward",
+                    strength: "India's global monopoly (98% share); high export demand for dietary fiber.",
+                    products: ["Processed/graded psyllium husk", "Powder", "Capsules"],
+                    justification: "Cultivation is established. Focus on promoting FPO-led modern processing units (as per KVIC model) with advanced machinery to improve quality, yield, and meet stringent international food safety standards."
+                },
+                {
+                    name: "Senna",
+                    botanical: "Cassia angustifolia",
+                    states: ["Rajasthan"],
+                    category: "Medicinal & Aromatic Plants",
+                    linkage: "Forward",
+                    strength: "Profitable, export-driven crop for natural laxatives (sennosides).",
+                    products: ["Graded leaves/pods", "Standardized extracts", "Herbal teas", "Capsules"],
+                    justification: "Move farmers up the value chain from raw material suppliers. Promote FPO-owned primary processing (grading, baling) and incentivize investment in extraction units to shift exports from raw leaves to high-value extracts."
+                },
+                {
+                    name: "Guggul & Salai",
+                    botanical: "Commiphora wightii & Boswellia serrata",
+                    states: ["Rajasthan"],
+                    category: "Medicinal & Aromatic Plants",
+                    linkage: "Backward",
+                    strength: "Surging pharma demand for anti-inflammatory compounds; Guggul is critically endangered.",
+                    products: ["Graded resin", "Standardized extracts (guggulsterones, boswellic acids)"],
+                    justification: "CRITICAL: Address resource crisis. Mandate and enforce sustainable, non-destructive tapping via training. Massively scale up cultivation of Guggul to shift from wild collection. Organize collectors into FPOs for fair pricing and traceability."
+                },
+                {
+                    name: "Seed Spices",
+                    botanical: "Cumin, Coriander, Fennel, Fenugreek",
+                    states: ["Rajasthan"],
+                    category: "Horticultural & Industrial Crops",
+                    linkage: "Integrated",
+                    strength: "National production hub; strong export demand; GI potential.",
+                    products: ["Graded seeds", "Powders", "Essential oils", "Oleoresins", "GI-tagged Nagauri Methi"],
+                    justification: "Backward: Promote disease-resistant varieties from ICAR-NRCSS. Forward: Establish modern, FPO-led spice processing parks to improve quality and reduce losses. Integrated: Pursue GI tagging for branding and premium pricing."
+                },
+                {
+                    name: "Pomegranate",
+                    botanical: "Punica granatum",
+                    states: ["Rajasthan"],
+                    category: "Horticultural & Industrial Crops",
+                    linkage: "Backward",
+                    strength: "High export potential for 'Bhagawa' variety; strong processing demand.",
+                    products: ["Graded fresh fruit", "Ready-to-eat arils", "Juice", "Wine", "Anardana"],
+                    justification: "Replicate Maharashtra's export success by establishing high-tech orchards of 'Bhagawa' variety with drip irrigation and scientific management, supported by NHM/RKVY schemes. Focus on producing export-quality fruit."
+                },
+                {
+                    name: "Date Palm",
+                    botanical: "Phoenix dactylifera",
+                    states: ["Rajasthan"],
+                    category: "Horticultural & Industrial Crops",
+                    linkage: "Backward",
+                    strength: "Nascent, high-value crop for arid western Rajasthan; import substitution.",
+                    products: ["Fresh dates (doka)", "Dry dates (chhuhara)", "Syrup", "Paste"],
+                    justification: "Address critical shortage of quality planting material. Scale up supply of tissue-cultured plants (e.g., 'Barhee', 'Medjool') via RKVY subsidies and provide technical support through the Centre of Excellence, Jaisalmer."
+                },
+                {
+                    name: "Ber",
+                    botanical: "Ziziphus mauritiana",
+                    states: ["Rajasthan", "Haryana", "Delhi"],
+                    category: "Horticultural & Industrial Crops",
+                    linkage: "Backward",
+                    strength: "Hardy, profitable fruit with established fresh market; processing potential untapped.",
+                    products: ["Dried ber", "Candy", "Powder", "Juice", "RTS beverages"],
+                    justification: "Strengthen backward linkages by organizing cultivation and forming FPOs to ensure a consistent supply of graded raw material for processing units, which is currently a major constraint."
+                },
+                {
+                    name: "Guar",
+                    botanical: "Cyamopsis tetragonoloba",
+                    states: ["Rajasthan", "Haryana"],
+                    category: "Horticultural & Industrial Crops",
+                    linkage: "Forward",
+                    strength: "Dominant global supplier (80% share); huge industrial demand from oil/gas sector.",
+                    products: ["Guar gum splits and powder (various grades)"],
+                    justification: "Cultivation is established. Focus on improving processing efficiency in existing units to produce higher-grade gums and strengthening export logistics and market intelligence via APEDA to maintain global leadership."
+                },
+                {
+                    name: "Jojoba",
+                    botanical: "Simmondsia chinensis",
+                    states: ["Rajasthan"],
+                    category: "Horticultural & Industrial Crops",
+                    linkage: "Backward",
+                    strength: "'Desert Gold' with high-value cosmetic oil potential for wastelands.",
+                    products: ["Liquid wax (Jojoba oil) for the cosmetics industry"],
+                    justification: "The primary constraint is lack of scale. Aggressively expand plantations through agencies like AJORP, providing quality planting material and support to farmers during the 3-4 year gestation period to achieve critical production mass."
+                },
+                {
+                    name: "Kinnow",
+                    botanical: "Citrus reticulata",
+                    states: ["Haryana"],
+                    category: "Horticultural & Industrial Crops",
+                    linkage: "Forward",
+                    strength: "High-yield fruit with established fresh market; significant value lost in by-products.",
+                    products: ["Juice", "Concentrates", "Peel-based essential oils", "Fiber-enriched foods from pulp residue"],
+                    justification: "Focus on by-product valorization. Invest in R&D and technology to create new products from processing waste (peel, pomace), as demonstrated by the CIAB study on fiber-enriched vermicelli, creating new revenue streams."
+                },
+                {
+                    name: "Ker & Sangri",
+                    botanical: "Capparis decidua & Prosopis cineraria",
+                    states: ["Rajasthan"],
+                    category: "Horticultural & Industrial Crops",
+                    linkage: "Backward",
+                    strength: "Iconic, premium heritage food with growing niche/export demand.",
+                    products: ["Dried/graded Ker-Sangri", "Premium pickles", "Ready-to-cook mixes"],
+                    justification: "Organize the highly informal wild-collection supply chain. Form collector FPOs/SHGs for systematic collection, primary processing (drying), and grading. Promote Khejri (Sangri) plantation under agroforestry to ensure sustainability."
+                },
+                {
+                    name: "Mahua",
+                    botanical: "Madhuca longifolia",
+                    states: ["Rajasthan"],
+                    category: "NTFPs for Livelihood",
+                    linkage: "Integrated",
+                    strength: "Central to tribal livelihoods; huge potential to shift from liquor to food-grade products.",
+                    products: ["Food-grade dried flowers", "Ladoos", "Jam", "Juice", "Seed oil"],
+                    justification: "Backward: Introduce scientific, net-based collection to improve quality and fetch 2-4x higher prices. Forward: Support tribal SHGs/FPOs via VDVKs to establish processing units for branded food products."
+                },
+                {
+                    name: "Natural Gums",
+                    botanical: "Gum Arabic, Karaya, Babul",
+                    states: ["Rajasthan"],
+                    category: "NTFPs for Livelihood",
+                    linkage: "Backward",
+                    strength: "Significant resource base; import substitution potential (Gum Arabic); export strength (Karaya).",
+                    products: ["Cleaned/graded raw gum", "Processed powders for food/pharma"],
+                    justification: "Organize unorganized tribal collectors into FPOs. Provide training on sustainable tapping and scientific grading. Establish transparent, direct procurement centers to eliminate middlemen and ensure fair prices."
+                },
+                {
+                    name: "Henna",
+                    botanical: "Lawsonia inermis",
+                    states: ["Rajasthan"],
+                    category: "Agro-Forestry & Fiber",
+                    linkage: "Forward",
+                    strength: "Well-organized export chain with GI tag for Sojat Henna; strong branding.",
+                    products: ["High-quality leaf powder", "Paste", "Hair dyes", "Body art products"],
+                    justification: "The value chain is already mature with strong forward linkages. The focus should be on sustaining quality, exploring new organic/natural product formulations, and strengthening the GI brand in global markets."
+                },
+                {
+                    name: "Neem",
+                    botanical: "Azadirachta indica",
+                    states: ["Rajasthan", "Haryana", "Delhi"],
+                    category: "Agro-Forestry & Fiber",
+                    linkage: "Integrated",
+                    strength: "Booming bio-pesticide and cosmetic markets; decentralized processing potential.",
+                    products: ["Neem oil", "Seed cake (fertilizer/pesticide)", "Leaf powder", "Extracts"],
+                    justification: "Backward: Organize seed collection drives through FPOs/SHGs. Forward: Promote village-level oil expellers and small-scale processing units to capture value locally."
+                },
+                {
+                    name: "Poplar & Eucalyptus",
+                    botanical: "Populus deltoides & Eucalyptus spp.",
+                    states: ["Haryana", "Rajasthan"],
+                    category: "Agro-Forestry & Fiber",
+                    linkage: "Forward",
+                    strength: "Mature farm-industry linkage; quick, high cash returns for farmers.",
+                    products: ["Plywood", "Pulpwood", "Poles", "Veneer"],
+                    justification: "The backward linkage (farm forestry) is strong. The priority is to maintain and strengthen the forward linkage with plywood/pulp industries, ensure transparent pricing, and explore higher-value uses."
+                },
+                {
+                    name: "Shisham",
+                    botanical: "Dalbergia sissoo",
+                    states: ["Haryana", "Rajasthan", "Delhi"],
+                    category: "Agro-Forestry & Fiber",
+                    linkage: "Backward",
+                    strength: "High-demand, premium timber for local furniture industry.",
+                    products: ["Sawn timber", "Furniture", "Handicrafts"],
+                    justification: "While demand is strong, supply from organized farm woodlots needs strengthening. Promote Shisham plantation under agroforestry systems to create a sustainable, long-term supply for the robust local furniture market."
+                }
+            ];
+
+            const recommendationsData = [
+                {
+                    title: "For Entrepreneurs & Farmer Producer Organizations (FPOs)",
+                    content: `
+                        <ul class="list-disc list-inside space-y-2 text-slate-600">
+                            <li><strong>Adopt a Cluster-Based Focus:</strong> Concentrate on one or two high-potential commodities in your region to build expertise and scale, aligning with the "One District One Product" (ODOP) strategy.</li>
+                            <li><strong>Prioritize Backward Linkage Development:</strong> Secure your raw material base first. Work with farmers on Good Agricultural Practices (GAPs), quality planting material, and efficient aggregation before investing heavily in processing.</li>
+                            <li><strong>Systematically Leverage Government Support:</strong> Actively pursue schemes like PMFME for subsidies, NMPB for medicinal plant support, and SFAC for equity grants to strengthen your financial position.</li>
+                        </ul>
+                    `
+                },
+                {
+                    title: "For Policymakers (State & Central)",
+                    content: `
+                         <ul class="list-disc list-inside space-y-2 text-slate-600">
+                            <li><strong>Strengthen the FPO Ecosystem Beyond Formation:</strong> Shift focus from formation targets to ensuring long-term viability through sustained handholding, business planning support, and performance-based grading, following the RACP model.</li>
+                            <li><strong>Incentivize Targeted Infrastructure Development:</strong> Use policies like the Rajasthan Agro-Processing Policy to channel investment into specific gaps, such as cold chains, modern spice parks, and by-product valorization facilities.</li>
+                            <li><strong>Champion Geographical Indications (GI) and Branding:</strong> Facilitate the process of securing GI tags for unique regional products like Nagauri Paan Methi to build brand equity and enhance export value.</li>
+                        </ul>
+                    `
+                },
+                {
+                    title: "For Investors",
+                    content: `
+                         <ul class="list-disc list-inside space-y-2 text-slate-600">
+                            <li><strong>Identify High-Growth Investment Sectors:</strong> Focus on high-potential areas like standardized medicinal extracts, branded seed spices, and export-oriented arid horticulture (Pomegranate, Date Palm).</li>
+                            <li><strong>De-risk Investments through Backward Integration:</strong> Invest in models that include contract farming, FPO partnerships, or nucleus farms to mitigate the primary risk of raw material volatility.</li>
+                            <li><strong>Explore Opportunities in By-product Valorization:</strong> Consider high-return investments in technologies that create wealth from agricultural waste, such as Kinnow pomace or mustard oil cake, fostering a circular economy.</li>
+                        </ul>
+                    `
+                }
+            ];
+
+            const speciesGrid = document.getElementById('speciesGrid');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const linkageFilter = document.getElementById('linkageFilter');
+            const stateFilter = document.getElementById('stateFilter');
+            const noResults = document.getElementById('noResults');
+
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            const closeModal = document.getElementById('closeModal');
+            
+            const accordionContainer = document.getElementById('accordion');
+
+            let modalChart = null;
+            
+            function getLinkageIcon(linkage) {
+                if (linkage === 'Backward') return { icon: '&#128295;', color: 'bg-red-100 text-red-800', tooltip: 'Backward Linkage: Focus on supply, cultivation, and collection.' };
+                if (linkage === 'Forward') return { icon: '&#128736;', color: 'bg-green-100 text-green-800', tooltip: 'Forward Linkage: Focus on processing, branding, and market access.' };
+                return { icon: '&#8646;', color: 'bg-blue-100 text-blue-800', tooltip: 'Integrated Linkage: Requires focus on both supply and market sides.' };
+            }
+
+            function renderSpecies(filteredData) {
+                speciesGrid.innerHTML = '';
+                if (filteredData.length === 0) {
+                    noResults.classList.remove('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                }
+                filteredData.forEach(species => {
+                    const linkageInfo = getLinkageIcon(species.linkage);
+                    const card = document.createElement('div');
+                    card.className = 'card bg-white rounded-lg shadow border border-slate-100 p-4 flex flex-col cursor-pointer';
+                    card.innerHTML = `
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-start">
+                                <h4 class="font-bold text-lg text-slate-800 mb-1">${species.name}</h4>
+                                <span title="${linkageInfo.tooltip}" class="text-xl ${linkageInfo.color} rounded-full w-8 h-8 flex items-center justify-center">${linkageInfo.icon}</span>
+                            </div>
+                            <p class="text-xs text-slate-400 italic mb-2">${species.botanical}</p>
+                            <p class="text-sm text-slate-600 mb-3">${species.strength}</p>
+                        </div>
+                        <div>
+                             <span class="text-xs font-medium ${linkageInfo.color} px-2 py-1 rounded-full">${species.linkage} Linkage</span>
+                             <span class="text-xs font-medium bg-slate-100 text-slate-700 px-2 py-1 rounded-full ml-1">${species.category.split(' ')[0]}</span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => showModal(species));
+                    speciesGrid.appendChild(card);
+                });
+            }
+            
+            function showModal(species) {
+                modalTitle.textContent = species.name;
+                
+                let productsHtml = species.products.map(p => `<li class="text-slate-600">${p}</li>`).join('');
+                
+                modalBody.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <p class="text-sm text-slate-500 italic mb-4">${species.botanical}</p>
+                            
+                            <h5 class="font-bold text-slate-800 mb-2">Core Strength & Market Driver</h5>
+                            <p class="text-slate-600 mb-4">${species.strength}</p>
+                            
+                            <h5 class="font-bold text-slate-800 mb-2">Key Value-Added Products</h5>
+                            <ul class="list-disc list-inside space-y-1 mb-4">${productsHtml}</ul>
+                            
+                            <h5 class="font-bold text-slate-800 mb-2">Strategic Intervention Priority: <span class="text-blue-700">${species.linkage}</span></h5>
+                            <p class="text-slate-600">${species.justification}</p>
+                        </div>
+                        <div class="flex items-center justify-center min-h-[250px] bg-slate-50 rounded-lg p-4">
+                            ${species.chartData ? '<div class="chart-container relative h-64 md:h-80 w-full max-w-md mx-auto"><canvas id="modalChartCanvas"></canvas></div>' : '<div class="text-center text-slate-500"><p>No specific quantitative data available for visualization.</p></div>'}
+                        </div>
+                    </div>
+                `;
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                setTimeout(() => {
+                    modal.querySelector('.modal-content').classList.remove('scale-95');
+                    modal.classList.remove('opacity-0');
+                }, 10);
+                
+                if (species.chartData) {
+                    const ctx = document.getElementById('modalChartCanvas').getContext('2d');
+                    if(modalChart) {
+                        modalChart.destroy();
+                    }
+                    modalChart = new Chart(ctx, {
+                        type: species.chartData.type,
+                        data: {
+                            labels: species.chartData.labels,
+                            datasets: [{
+                                label: 'Tonnes',
+                                data: species.chartData.values,
+                                backgroundColor: ['rgba(59, 130, 246, 0.5)', 'rgba(239, 68, 68, 0.5)'],
+                                borderColor: ['rgba(59, 130, 246, 1)', 'rgba(239, 68, 68, 1)'],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                title: { display: true, text: species.chartData.title, font: { size: 14 } }
+                            },
+                             scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
+            }
+
+            function hideModal() {
+                modal.querySelector('.modal-content').classList.add('scale-95');
+                modal.classList.add('opacity-0');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    if(modalChart) {
+                        modalChart.destroy();
+                        modalChart = null;
+                    }
+                }, 300);
+            }
+
+            function populateFilters() {
+                const categories = [...new Set(speciesData.map(s => s.category))];
+                categories.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c;
+                    option.textContent = c;
+                    categoryFilter.appendChild(option);
+                });
+            }
+
+            function filterData() {
+                const cat = categoryFilter.value;
+                const link = linkageFilter.value;
+                const state = stateFilter.value;
+                
+                const filtered = speciesData.filter(s => {
+                    const categoryMatch = cat === 'all' || s.category === cat;
+                    const linkageMatch = link === 'all' || s.linkage === link;
+                    const stateMatch = state === 'all' || s.states.includes(state);
+                    return categoryMatch && linkageMatch && stateMatch;
+                });
+                
+                renderSpecies(filtered);
+            }
+            
+            function renderAccordion() {
+                recommendationsData.forEach((item, index) => {
+                    const accordionItem = document.createElement('div');
+                    accordionItem.className = 'bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden';
+                    accordionItem.innerHTML = `
+                        <button class="accordion-header w-full text-left p-4 font-semibold text-slate-800 flex justify-between items-center hover:bg-slate-50 focus:outline-none">
+                            <span>${item.title}</span>
+                            <span class="transform transition-transform duration-300">&#9662;</span>
+                        </button>
+                        <div class="accordion-content overflow-hidden max-h-0 transition-max-height duration-500 ease-in-out">
+                            <div class="p-4 border-t border-slate-200">
+                                ${item.content}
+                            </div>
+                        </div>
+                    `;
+                    accordionContainer.appendChild(accordionItem);
+                });
+
+                document.querySelectorAll('.accordion-header').forEach(button => {
+                    button.addEventListener('click', () => {
+                         const content = button.nextElementSibling;
+                         button.querySelector('span:last-child').classList.toggle('rotate-180');
+                         if (content.style.maxHeight) {
+                            content.style.maxHeight = null;
+                         } else {
+                            content.style.maxHeight = content.scrollHeight + "px";
+                         }
+                    });
+                });
+            }
+
+            function init() {
+                renderSpecies(speciesData);
+                populateFilters();
+
+                categoryFilter.addEventListener('change', filterData);
+                linkageFilter.addEventListener('change', filterData);
+                stateFilter.addEventListener('change', filterData);
+
+                closeModal.addEventListener('click', hideModal);
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        hideModal();
+                    }
+                });
+
+                const linkageCounts = speciesData.reduce((acc, curr) => {
+                    acc[curr.linkage] = (acc[curr.linkage] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const linkageChartCtx = document.getElementById('linkageChart').getContext('2d');
+                new Chart(linkageChartCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(linkageCounts),
+                        datasets: [{
+                            label: 'Number of Species',
+                            data: Object.values(linkageCounts),
+                            backgroundColor: [
+                                'rgba(239, 68, 68, 0.7)',  // Red for Backward
+                                'rgba(34, 197, 94, 0.7)', // Green for Forward
+                                'rgba(59, 130, 246, 0.7)'  // Blue for Integrated
+                            ],
+                            borderColor: [
+                                'rgba(239, 68, 68, 1)',
+                                'rgba(34, 197, 94, 1)',
+                                'rgba(59, 130, 246, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += context.parsed + ' species';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                renderAccordion();
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>
